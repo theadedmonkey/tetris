@@ -13,23 +13,85 @@ const int SCREEN_HEIGHT = 768;
 const int SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
 
 // FPS constants
-const int FPS = 60;
+const int FPS = 15;
 const int DELAY_TIME = 1000.0f / FPS;
 
 // window and renderer
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 
-// 10 cols 16 rows
+// 16 rows 10 cols
 std::array<std::array<int, 10>, 16> tiles;
 
-std::array<std::array<int, 2>, 2> square = { 1, 1,
-                                             1, 1 };
+struct Tetromino {
 
+  Tetromino(std::array<std::array<int, 4>, 2> t_shape) : shape(t_shape) {}
+
+  int col = 4;
+  int row = 0;
+
+  bool hasLanded = false;
+
+  std::array<std::array<int, 4>, 2> shape;
+};
+
+Tetromino createTetromino(std::string name) {
+
+  if (name == "I") {
+    return Tetromino({
+      0, 0, 0, 0,
+      1, 1, 1, 1
+    });
+  }
+
+  if (name == "O") {
+    return Tetromino({
+      0, 1, 1, 0,
+      0, 1, 1, 0
+    });
+  }
+
+  if (name == "T") {
+    return Tetromino({
+      0, 1, 0, 0,
+      1, 1, 1, 0
+    });
+  }
+
+  if (name == "S") {
+    return Tetromino({
+      0, 1, 1, 0,
+      1, 1, 0, 0
+    });
+  }
+
+  if (name == "Z") {
+    return Tetromino({
+      1, 1, 0, 0,
+      0, 1, 1, 0
+    });
+  }
+
+  if (name == "J") {
+    return Tetromino({
+      1, 0, 0, 0,
+      1, 1, 1, 0
+    });
+  }
+
+  if (name == "L") {
+    return Tetromino({
+      0, 0, 1, 0,
+      1, 1, 1, 0
+    });
+  }
+}
+
+Tetromino tetromino = createTetromino("T");
 
 // game data
-const int BLOCK_WIDTH = 32;
-const int BLOCK_HEIGHT = 32;
+const int BLOCK_WIDTH = 48;
+const int BLOCK_HEIGHT = 48;
 
 // game textures
 SDL_Texture* blockTexture = nullptr;
@@ -112,9 +174,9 @@ void drawPlay() {
 
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-	for (auto col = 0; col < tiles.size(); col++) {
-		for (auto row = 0; row < tiles[col].size(); row++) {
-			if (tiles[col][row] == 1) {
+	for (auto row = 0; row < tiles.size(); row++) {
+		for (auto col = 0; col < tiles[row].size(); col++) {
+			if (tiles[row][col] == 1) {
 				blockRect = { BLOCK_WIDTH * col, BLOCK_HEIGHT * row, BLOCK_WIDTH, BLOCK_HEIGHT };
 				SDL_RenderCopy(renderer, blockTexture, nullptr, &blockRect);
 			}
@@ -125,24 +187,41 @@ void drawPlay() {
 }
 
 void updateTetromino() {
-  Uint8 *keys = (Uint8*)SDL_GetKeyboardState(NULL);
 
-  if(keys[SDL_SCANCODE_DOWN]) {
-
+  if (tetromino.row == 14) {
+    tetromino.hasLanded = true;
   }
 
-  if(keys[SDL_SCANCODE_LEFT]) {
+  if (!tetromino.hasLanded) {
+    for (auto row = 0; row < 2; row++) {
+      for (auto col = 0; col < 4; col++) {
+        if (tetromino.shape[row][col] == 1) {
+          tiles[tetromino.row + row][tetromino.col + col] = 0;
+        }
+      }
+    }
 
+    Uint8 *keys = (Uint8*)SDL_GetKeyboardState(NULL);
+    if(keys[SDL_SCANCODE_DOWN]) {
+      tetromino.row +=1;
+    }
+
+    if(keys[SDL_SCANCODE_LEFT]) {
+      tetromino.col -= 1;
+    }
+
+    if(keys[SDL_SCANCODE_RIGHT]) {
+      tetromino.col += 1;
+    }
   }
 
-  if(keys[SDL_SCANCODE_RIGHT]) {
-
+  for (auto row = 0; row < 2; row++) {
+    for (auto col = 0; col < 4; col++) {
+      if (tetromino.shape[row][col] == 1) {
+        tiles[tetromino.row + row][tetromino.col + col] = 1;
+      }
+    }
   }
-
-	tiles[5][8] = 1;
-	tiles[6][8] = 1;
-	tiles[5][9] = 1;
-	tiles[6][9] = 1;
 }
 
 int main( int argc, char* args[] ) {
