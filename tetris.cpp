@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 #include <array>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -22,6 +23,10 @@ SDL_Renderer* renderer = nullptr;
 
 // 16 rows 10 cols
 std::array<std::array<int, 10>, 16> tiles;
+
+// tetrominos
+
+std::vector<std::string> tetrominoNames = { "I", "O", "T", "S", "Z", "J", "L" };
 
 struct Tetromino {
 
@@ -104,6 +109,8 @@ SDL_Texture* loadTexture(const std::string& path);
 bool loadMedia();
 bool initGame();
 void drawPlay();
+int random(int min, int max);
+void generateTetromino();
 void updateTetromino();
 
 bool initSDL() {
@@ -186,10 +193,27 @@ void drawPlay() {
 	SDL_RenderPresent(renderer);
 }
 
-void updateTetromino() {
+// range : [min, max) max no inclusive
+int random(int min, int max) {
+  static bool first = true;
+  if (first) {
+	  //seeding for the first time only!
+    srand(time(NULL));
+    first = false;
+  }
+  return min + rand() % (max - min);
+}
 
+void generateTetromino() {
+  const std::string tetrominoName = tetrominoNames[random(0, tetrominoNames.size())];
+  tetromino = createTetromino(tetrominoName);
+}
+
+void updateTetromino() {
+  // check landed
   if (tetromino.row == 14) {
     tetromino.hasLanded = true;
+    generateTetromino();
   }
 
   if (!tetromino.hasLanded) {
