@@ -14,7 +14,7 @@ const int SCREEN_HEIGHT = 768;
 const int SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
 
 // FPS constants
-const int FPS = 15;
+const int FPS = 60;
 const int DELAY_TIME = 1000.0f / FPS;
 
 // window and renderer
@@ -24,20 +24,33 @@ SDL_Renderer* renderer = nullptr;
 // 16 rows 10 cols
 std::array<std::array<int, 10>, 16> tiles;
 
+// game data
+const int BLOCK_WIDTH = 48;
+const int BLOCK_HEIGHT = 48;
+
 // tetrominos
 
 std::vector<std::string> tetrominoNames = { "I", "O", "T", "S", "Z", "J", "L" };
 
 struct Tetromino {
+  Tetromino() {}
 
   Tetromino(std::array<std::array<int, 4>, 2> t_shape) : shape(t_shape) {}
 
   int col = 4;
   int row = 0;
 
+  int x = BLOCK_WIDTH * col;
+  int y = 0;
+
+  int targetY = BLOCK_HEIGHT;
+  int targetX = BLOCK_WIDTH;
+
   bool hasLanded = false;
 
   std::array<std::array<int, 4>, 2> shape;
+
+  bool isMoving = false;
 };
 
 Tetromino createTetromino(std::string name) {
@@ -92,11 +105,7 @@ Tetromino createTetromino(std::string name) {
   }
 }
 
-Tetromino tetromino = createTetromino("T");
-
-// game data
-const int BLOCK_WIDTH = 48;
-const int BLOCK_HEIGHT = 48;
+Tetromino tetromino;
 
 // game textures
 SDL_Texture* blockTexture = nullptr;
@@ -108,7 +117,9 @@ bool initSDL();
 SDL_Texture* loadTexture(const std::string& path);
 bool loadMedia();
 bool initGame();
+void resetPlay();
 void drawPlay();
+void drawTetromino();
 int random(int min, int max);
 void generateTetromino();
 void updateTetromino();
@@ -171,9 +182,13 @@ bool initGame() {
     return false;
   }
 
-  // resetPlay();
+  resetPlay();
 
   return true;
+}
+
+void resetPlay() {
+  generateTetromino();
 }
 
 void drawPlay() {
@@ -181,6 +196,9 @@ void drawPlay() {
 
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
+  drawTetromino();
+
+  // draw landed tetrominos
 	for (auto row = 0; row < tiles.size(); row++) {
 		for (auto col = 0; col < tiles[row].size(); col++) {
 			if (tiles[row][col] == 1) {
@@ -191,6 +209,23 @@ void drawPlay() {
 	}
 
 	SDL_RenderPresent(renderer);
+}
+
+void drawTetromino() {
+  // draws a falling tetromino
+  for (auto row = 0; row < tetromino.shape.size(); row++) {
+    for (auto col = 0; col < tetromino.shape[row].size(); col++) {
+      if (tetromino.shape[row][col] == 1) {
+        SDL_Rect rect = {
+          tetromino.x + BLOCK_WIDTH * col,
+          tetromino.y + BLOCK_HEIGHT * row,
+          BLOCK_WIDTH,
+          BLOCK_HEIGHT
+        };
+        SDL_RenderCopy(renderer, blockTexture, nullptr, &rect);
+      }
+    }
+  }
 }
 
 // range : [min, max) max no inclusive
@@ -210,42 +245,51 @@ void generateTetromino() {
 }
 
 void updateTetromino() {
-  // check landed
-  if (tetromino.row == 14) {
-    tetromino.hasLanded = true;
-    generateTetromino();
+
+  Uint8 *keys = (Uint8*)SDL_GetKeyboardState(NULL);
+  if(keys[SDL_SCANCODE_DOWN]) {
+  
   }
 
-  if (!tetromino.hasLanded) {
-    for (auto row = 0; row < 2; row++) {
-      for (auto col = 0; col < 4; col++) {
-        if (tetromino.shape[row][col] == 1) {
-          tiles[tetromino.row + row][tetromino.col + col] = 0;
-        }
-      }
-    }
-
-    Uint8 *keys = (Uint8*)SDL_GetKeyboardState(NULL);
-    if(keys[SDL_SCANCODE_DOWN]) {
-      tetromino.row +=1;
-    }
-
-    if(keys[SDL_SCANCODE_LEFT]) {
+  if(keys[SDL_SCANCODE_LEFT]) {
+    if (!tetromino.isMoving) {
       tetromino.col -= 1;
     }
 
-    if(keys[SDL_SCANCODE_RIGHT]) {
+    tetromino.targetX = tetromino.col * BLOCK_WIDTH;
+    tetromino.isMoving = true;
+  }
+
+  if(keys[SDL_SCANCODE_RIGHT]) {
+    if (!tetromino.isMoving) {
       tetromino.col += 1;
+    }
+
+    tetromino.targetX = tetromino.col * BLOCK_WIDTH;
+    tetromino.isMoving = true;
+  }
+
+
+  if (tetromino.isMoving) {
+    if (tetromino.x == tetromino.targetX) {
+      tetromino.isMoving = false;
+    }
+    if (tetromino.targetX < tetromino.x) {
+      tetromino.x -= 8;
+    }
+    if (tetromino.targetX > tetromino.x) {
+      tetromino.x += 8;
     }
   }
 
-  for (auto row = 0; row < 2; row++) {
-    for (auto col = 0; col < 4; col++) {
-      if (tetromino.shape[row][col] == 1) {
-        tiles[tetromino.row + row][tetromino.col + col] = 1;
-      }
-    }
+  if (tetromino.y == tetromino.targetY) {
+    tetromino.row += 1;
+    tetromino.targetY = tetromino.row * BLOCK_HEIGHT;
   }
+  if (tetromino.targetY > tetromino.y) {
+    tetromino.y += 1;
+  }
+
 }
 
 int main( int argc, char* args[] ) {
