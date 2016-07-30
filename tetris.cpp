@@ -30,6 +30,8 @@ const int BLOCK_HEIGHT = 48;
 
 // tetrominos
 
+int tetrominoFallSpeed = 2;
+
 std::vector<std::string> tetrominoNames = { "I", "O", "T", "S", "Z", "J", "L" };
 
 struct Tetromino {
@@ -44,7 +46,7 @@ struct Tetromino {
   int y = 0;
 
   int targetY = BLOCK_HEIGHT;
-  int targetX = BLOCK_WIDTH;
+  int targetX = col * BLOCK_WIDTH;
 
   bool hasLanded = false;
 
@@ -244,24 +246,84 @@ void generateTetromino() {
   tetromino = createTetromino(tetrominoName);
 }
 
+bool canMoveLeft() {
+  for (auto row = 0; row < tetromino.shape.size(); row++) {
+    for (auto col = 0; col < tetromino.shape[row].size(); col++) {
+      if (tetromino.shape[row][col] == 1) {
+        // check left board collision
+        if (tetromino.col - 1 + col < 0) {
+          return false;
+        }
+        // check left collsion with tetros
+        if (tiles[tetromino.row + row][tetromino.col - 1 + col] == 1) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+bool canMoveRight() {
+  for (auto row = 0; row < tetromino.shape.size(); row++) {
+    for (auto col = 0; col < tetromino.shape[row].size(); col++) {
+      if (tetromino.shape[row][col] == 1) {
+        // check bottom board collision
+        if (tetromino.col + 1 + col > 9) {
+          return false;
+        }
+        // check right collision with tetros
+        if (tiles[tetromino.row + row][tetromino.col + 1 + col] == 1) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+bool canMoveDown() {
+  for (auto row = 0; row < tetromino.shape.size(); row++) {
+    for (auto col = 0; col < tetromino.shape[row].size(); col++) {
+      if (tetromino.shape[row][col] == 1) {
+        // check bottom board collision
+        if (tetromino.row + 1 + row > 15) {
+          return false;
+        }
+        // check bottom collision with tetros
+        if (tiles[tetromino.row + 1 + row][tetromino.col + col] == 1) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 void updateTetromino() {
 
+
   Uint8 *keys = (Uint8*)SDL_GetKeyboardState(NULL);
-  if(keys[SDL_SCANCODE_DOWN]) {
-  
-  }
+  if(keys[SDL_SCANCODE_DOWN]) {}
 
   if(keys[SDL_SCANCODE_LEFT]) {
-    if (!tetromino.isMoving) {
+    if (!tetromino.isMoving  && canMoveLeft()) {
       tetromino.col -= 1;
     }
-
+    // tetro is moving right
+    if (tetromino.targetX > tetromino.x) {
+      tetromino.col -= 1;
+    }
     tetromino.targetX = tetromino.col * BLOCK_WIDTH;
     tetromino.isMoving = true;
   }
 
   if(keys[SDL_SCANCODE_RIGHT]) {
-    if (!tetromino.isMoving) {
+    if (!tetromino.isMoving && canMoveRight()) {
+      tetromino.col += 1;
+    }
+    // tetro is moving left
+    if (tetromino.targetX < tetromino.x) {
       tetromino.col += 1;
     }
 
@@ -275,19 +337,32 @@ void updateTetromino() {
       tetromino.isMoving = false;
     }
     if (tetromino.targetX < tetromino.x) {
-      tetromino.x -= 8;
+      tetromino.x -= 2;
     }
     if (tetromino.targetX > tetromino.x) {
-      tetromino.x += 8;
+      tetromino.x += 2;
     }
   }
 
   if (tetromino.y == tetromino.targetY) {
-    tetromino.row += 1;
-    tetromino.targetY = tetromino.row * BLOCK_HEIGHT;
+    if (canMoveDown()) {
+      tetromino.row += 1;
+      tetromino.targetY = tetromino.row * BLOCK_HEIGHT;
+    }
+    else {
+      for (auto row = 0; row < tetromino.shape.size(); row++) {
+        for (auto col = 0; col < tetromino.shape[row].size(); col++) {
+          if (tetromino.shape[row][col] == 1) {
+            tiles[tetromino.row + row][tetromino.col + col] = 1;
+          }
+        }
+      }
+      generateTetromino();
+    }
   }
-  if (tetromino.targetY > tetromino.y) {
-    tetromino.y += 1;
+
+  if (tetromino.y < tetromino.targetY) {
+    tetromino.y += 2;
   }
 
 }
