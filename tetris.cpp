@@ -60,7 +60,7 @@ Tetromino createTetromino(std::string name) {
   if (name == "I") {
     return Tetromino({
       0, 0, 0, 0,
-      1, 1, 1, 1
+      1, 1, 1, 1,
     });
   }
 
@@ -300,6 +300,22 @@ bool canMoveDown() {
   return true;
 }
 
+bool isRowComplete(const std::array<int, 10> row) {
+  for (auto col = 0; col < row.size(); col++) {
+    if (row[col] != 1) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void removeRow(int rowIdx) {
+  for (auto col = 0; col < tiles[rowIdx].size(); col++) {
+    tiles[rowIdx][col] = 0;
+  }
+}
+
 void updateTetromino() {
 
 
@@ -337,10 +353,10 @@ void updateTetromino() {
       tetromino.isMoving = false;
     }
     if (tetromino.targetX < tetromino.x) {
-      tetromino.x -= 2;
+      tetromino.x -= 8;
     }
     if (tetromino.targetX > tetromino.x) {
-      tetromino.x += 2;
+      tetromino.x += 8;
     }
   }
 
@@ -362,7 +378,23 @@ void updateTetromino() {
   }
 
   if (tetromino.y < tetromino.targetY) {
-    tetromino.y += 2;
+    tetromino.y += 4;
+  }
+
+  // clear complete lines
+  for (auto rowIdx = 0; rowIdx < tiles.size(); rowIdx++) {
+    if (isRowComplete(tiles[rowIdx])) {
+      removeRow(rowIdx);
+      SDL_Delay(250);
+      // move all rows above the deleted one down by one col
+      for (auto rowAboveIdx = 0; rowAboveIdx < rowIdx; rowAboveIdx++) {
+        for (auto col = 0; col < tiles[rowAboveIdx].size(); col++) {
+          if (tiles[rowAboveIdx][col] == 1) {
+            tiles[rowAboveIdx + 1][col] = 1;
+          }
+        }
+      }
+    }
   }
 
 }
