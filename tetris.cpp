@@ -37,7 +37,7 @@ std::vector<std::string> tetrominoNames = { "I", "O", "T", "S", "Z", "J", "L" };
 struct Tetromino {
   Tetromino() {}
 
-  Tetromino(std::vector<std::array<std::array<int, 4>, 4>> t_shapes) : shapes(t_shapes) {
+  Tetromino(std::vector<std::vector<std::vector<int>>> t_shapes) : shapes(t_shapes) {
     shape = shapes[shapeIdx];
   }
 
@@ -53,9 +53,9 @@ struct Tetromino {
   bool hasLanded = false;
 
   int shapeIdx = 0;
-  std::array<std::array<int, 4>, 4> shape;
+  std::vector<std::vector<int>> shape;
 
-  std::vector<std::array<std::array<int, 4>, 4>> shapes;
+  std::vector<std::vector<std::vector<int>>> shapes;
 
   bool isMoving = false;
 };
@@ -64,171 +64,120 @@ Tetromino createTetromino(std::string name) {
 
   if (name == "I") {
     return Tetromino({
-    { 1, 1, 1, 1,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0 },
 
-    { 0, 0, 1, 0,
-      0, 0, 1, 0,
-      0, 0, 1, 0,
-      0, 0, 1, 0 },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 0, 0 },
+      { 1, 1, 1, 1 },
+      { 0, 0, 0, 0 } },
 
-    { 1, 1, 1, 1,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0 },
+    { { 0, 0, 1, 0 },
+      { 0, 0, 1, 0 },
+      { 0, 0, 1, 0 },
+      { 0, 0, 1, 0 } }
 
-    { 0, 1, 0, 0,
-      0, 1, 0, 0,
-      0, 1, 0, 0,
-      0, 1, 0, 0 }
     });
   }
-
   if (name == "O") {
     return Tetromino({
-    { 0, 2, 2, 0,
-      0, 2, 2, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0 },
 
-    { 0, 2, 2, 0,
-      0, 2, 2, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0 },
+    { { 2, 2 },
+      { 2, 2 } }
 
-    { 0, 2, 2, 0,
-      0, 2, 2, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0 },
-
-    { 0, 2, 2, 0,
-      0, 2, 2, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0 }
     });
   }
 
   if (name == "T") {
     return Tetromino({
-    { 3, 3, 3, 0,
-      0, 3, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0 },
 
-    { 0, 3, 0, 0,
-      3, 3, 0, 0,
-      0, 3, 0, 0,
-      0, 0, 0, 0 },
+    { { 0, 0, 0 },
+      { 3, 3, 3 },
+      { 0, 3, 0 } },
 
-    { 0, 0, 0, 0,
-      0, 3, 0, 0,
-      3, 3, 3, 0,
-      0, 0, 0, 0 },
+    { { 0, 3, 0 },
+      { 3, 3, 0 },
+      { 0, 3, 0 } },
 
-    { 0, 3, 0, 0,
-      0, 3, 3, 0,
-      0, 3, 0, 0,
-      0, 0, 0, 0 }
+    { { 0, 3, 0 },
+      { 3, 3, 3 },
+      { 0, 0, 0 } },
+
+    { { 0, 3, 0 },
+      { 0, 3, 3 },
+      { 0, 3, 0 } },
+
     });
   }
 
   if (name == "S") {
     return Tetromino({
-    { 0, 0, 0, 0,
-      0, 4, 4, 0,
-      4, 4, 0, 0,
-      0, 0, 0, 0 },
 
-    { 0, 4, 0, 0,
-      0, 4, 4, 0,
-      0, 0, 4, 0,
-      0, 0, 0, 0 },
+    { { 0, 0, 0 },
+      { 0, 4, 4 },
+      { 4, 4, 0 } },
 
-    { 0, 0, 0, 0,
-      0, 4, 4, 0,
-      4, 4, 0, 0,
-      0, 0, 0, 0 },
+    { { 0, 4, 0 },
+      { 0, 4, 4 },
+      { 0, 0, 4 } }
 
-    { 4, 0, 0, 0,
-      4, 4, 0, 0,
-      0, 4, 0, 0,
-      0, 0, 0, 0 }
     });
   }
 
   if (name == "Z") {
     return Tetromino({
-    { 0, 0, 0, 0,
-      5, 5, 0, 0,
-      0, 5, 5, 0,
-      0, 0, 0, 0 },
 
-    { 0, 0, 5, 0,
-      0, 5, 5, 0,
-      0, 5, 0, 0,
-      0, 0, 0, 0 },
+    { { 0, 0, 0 },
+      { 5, 5, 0 },
+      { 0, 5, 5 } },
 
-    { 0, 0, 0, 0,
-      5, 5, 0, 0,
-      0, 5, 5, 0,
-      0, 0, 0, 0 },
+    { { 0, 0, 5 },
+      { 0, 5, 5 },
+      { 0, 5, 0 } }
 
-    { 0, 5, 0, 0,
-      5, 5, 0, 0,
-      5, 0, 0, 0,
-      0, 0, 0, 0 }
     });
   }
 
   if (name == "J") {
     return Tetromino({
-    { 0, 0, 0, 0,
-      6, 6, 6, 0,
-      0, 0, 6, 0,
-      0, 0, 0, 0 },
+    { { 0, 0, 0 },
+      { 6, 6, 6 },
+      { 0, 0, 6 } },
 
-    { 0, 6, 0, 0,
-      0, 6, 0, 0,
-      6, 6, 0, 0,
-      0, 0, 0, 0 },
+    { { 0, 6, 0 },
+      { 0, 6, 0 },
+      { 6, 6, 0 } },
 
-    { 0, 0, 0, 0,
-      6, 0, 0, 0,
-      6, 6, 6, 0,
-      0, 0, 0, 0 },
+    { { 6, 0, 0 },
+      { 6, 6, 6 },
+      { 0, 0, 0 } },
 
-    { 0, 6, 6, 0,
-      0, 6, 0, 0,
-      0, 6, 0, 0,
-      0, 0, 0, 0 }
+    { { 0, 6, 6 },
+      { 0, 6, 0 },
+      { 0, 6, 0 } }
+
     });
   }
 
   if (name == "L") {
     return Tetromino({
-    { 0, 0, 0, 0,
-      7, 7, 7, 0,
-      7, 0, 0, 0,
-      0, 0, 0, 0 },
+    { { 0, 0, 0 },
+      { 7, 7, 7 },
+      { 7, 0, 0 } },
 
-    { 7, 7, 0, 0,
-      0, 7, 0, 0,
-      0, 7, 0, 0,
-      0, 0, 0, 0 },
+    { { 7, 7, 0 },
+      { 0, 7, 0 },
+      { 0, 7, 0 } },
 
-    { 0, 0, 0, 0,
-      0, 0, 7, 0,
-      7, 7, 7, 0,
-      0, 0, 0, 0 },
+    { { 0, 0, 7 },
+      { 7, 7, 7 },
+      { 0, 0, 0 } },
 
-    { 0, 7, 0, 0,
-      0, 7, 0, 0,
-      0, 7, 7, 0,
-      0, 0, 0, 0 }
+    { { 0, 7, 0 },
+      { 0, 7, 0 },
+      { 0, 7, 7 } }
+
     });
   }
+
 }
 
 Tetromino tetromino;
@@ -419,6 +368,26 @@ void generateTetromino() {
   // tetromino = createTetromino("I");
 }
 
+bool canRotate(int rotationIdx) {
+  const std::vector<std::vector<int>> rotation = tetromino.shapes[rotationIdx];
+  for (auto row = 0; row < rotation.size(); row++) {
+    for (auto col = 0; col < rotation[row].size(); col++) {
+      if (tetromino.col + col < 0) {
+        return false;
+      }
+      if (tetromino.col + col > 9) {
+        return false;
+      }
+      if (rotation[row][col] != 0) {
+        if (tiles[tetromino.row + row][tetromino.col + col] != 0) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 bool canMoveLeft() {
   for (auto row = 0; row < tetromino.shape.size(); row++) {
     for (auto col = 0; col < tetromino.shape[row].size(); col++) {
@@ -441,7 +410,7 @@ bool canMoveRight() {
   for (auto row = 0; row < tetromino.shape.size(); row++) {
     for (auto col = 0; col < tetromino.shape[row].size(); col++) {
       if (tetromino.shape[row][col] != 0) {
-        // check bottom board collision
+        // check right board collision
         if (tetromino.col + 1 + col > 9) {
           return false;
         }
@@ -551,7 +520,7 @@ void updateTetromino() {
   }
 
   if (tetromino.y < tetromino.targetY) {
-    tetromino.y += 4;
+    tetromino.y += 1;
   }
 
   // clear complete lines
@@ -589,13 +558,18 @@ int main( int argc, char* args[] ) {
 
       if(event.type == SDL_KEYDOWN) {
         if(event.key.keysym.sym == SDLK_SPACE) {
-          if(tetromino.shapeIdx + 1 == 4) {
-            tetromino.shapeIdx = 0;
+          int rotationIdx = tetromino.shapeIdx;
+          if(rotationIdx + 1 == tetromino.shapes.size()) {
+            rotationIdx = 0;
           }
           else {
-            tetromino.shapeIdx += 1;
+            rotationIdx += 1;
           }
-          tetromino.shape = tetromino.shapes[tetromino.shapeIdx];
+          if (canRotate(rotationIdx)) {
+            tetromino.shapeIdx = rotationIdx;
+            tetromino.shape = tetromino.shapes[tetromino.shapeIdx];
+          }
+
         }
       }
     }
