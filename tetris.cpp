@@ -30,7 +30,8 @@ const int BLOCK_HEIGHT = 48;
 
 // tetrominos
 
-int tetrominoFallSpeed = 2;
+int tetrominoDefaultFallSpeed = 2;
+int tetrominoFallSpeed = tetrominoDefaultFallSpeed;
 
 std::vector<std::string> tetrominoNames = { "I", "O", "T", "S", "Z", "J", "L" };
 
@@ -462,7 +463,16 @@ void updateTetromino() {
 
 
   Uint8 *keys = (Uint8*)SDL_GetKeyboardState(NULL);
-  if(keys[SDL_SCANCODE_DOWN]) {}
+  if(keys[SDL_SCANCODE_DOWN]) {
+    if (tetromino.y ==  tetromino.targetY) {
+      if (tetrominoFallSpeed * 2 > 24) {
+        tetrominoFallSpeed = 24;
+      }
+      else {
+        tetrominoFallSpeed *= 2;
+      }
+    }
+  }
 
   if(keys[SDL_SCANCODE_LEFT]) {
     if (!tetromino.isMoving  && canMoveLeft()) {
@@ -508,6 +518,7 @@ void updateTetromino() {
       tetromino.targetY = tetromino.row * BLOCK_HEIGHT;
     }
     else {
+      // tetro has landed
       for (auto row = 0; row < tetromino.shape.size(); row++) {
         for (auto col = 0; col < tetromino.shape[row].size(); col++) {
           if (tetromino.shape[row][col] != 0) {
@@ -515,12 +526,13 @@ void updateTetromino() {
           }
         }
       }
+      tetrominoFallSpeed = tetrominoDefaultFallSpeed;
       generateTetromino();
     }
   }
 
   if (tetromino.y < tetromino.targetY) {
-    tetromino.y += 1;
+    tetromino.y += tetrominoFallSpeed;
   }
 
   // clear complete lines
