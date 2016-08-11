@@ -21,44 +21,45 @@ const int DELAY_TIME = 1000.0f / FPS;
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 
-// 16 rows 10 cols
-std::array<std::array<int, 10>, 16> tiles;
+// 22 rows 10 cols
+std::array<std::array<int, 10>, 22> tiles;
+
+int tickDuration = 500.0f;
+int tickCurrent;
+int tickLast;
+int tickAccum;
 
 // game data
-const int BLOCK_WIDTH = 48;
-const int BLOCK_HEIGHT = 48;
+const int BLOCK_WIDTH = 32;
+const int BLOCK_HEIGHT = 32;
 
 // tetrominos
-
-int tetrominoDefaultFallSpeed = 2;
-int tetrominoFallSpeed = tetrominoDefaultFallSpeed;
-
 std::vector<std::string> tetrominoNames = { "I", "O", "T", "S", "Z", "J", "L" };
 
 struct Tetromino {
   Tetromino() {}
 
-  Tetromino(std::vector<std::vector<std::vector<int>>> t_shapes) : shapes(t_shapes) {
+  Tetromino(
+    std::vector<std::vector<std::vector<int>>> t_shapes,
+    int t_row = 0,
+    int t_col = 0
+  ) : shapes(t_shapes), row(t_row), col(t_col) {
     shape = shapes[shapeIdx];
   }
 
-  int col = 4;
+  int col = 0;
   int row = 0;
 
   int x = BLOCK_WIDTH * col;
-  int y = 0;
+  int y = BLOCK_HEIGHT * row;
 
-  int targetY = BLOCK_HEIGHT;
-  int targetX = col * BLOCK_WIDTH;
-
-  bool hasLanded = false;
+  int targetX = BLOCK_WIDTH * col;
+  int targetY = BLOCK_HEIGHT * row;
 
   int shapeIdx = 0;
   std::vector<std::vector<int>> shape;
-
   std::vector<std::vector<std::vector<int>>> shapes;
 
-  bool isMoving = false;
 };
 
 Tetromino createTetromino(std::string name) {
@@ -76,107 +77,126 @@ Tetromino createTetromino(std::string name) {
       { 0, 0, 1, 0 },
       { 0, 0, 1, 0 } }
 
-    });
+    }, 0, 3);
   }
+
   if (name == "O") {
     return Tetromino({
 
-    { { 2, 2 },
-      { 2, 2 } }
+    { { 0, 0, 0, 0 },
+      { 0, 0, 0, 0 },
+      { 0, 0, 2, 2 },
+      { 0, 0, 2, 2 } },
 
-    });
+
+    }, 0, 3);
   }
 
   if (name == "T") {
     return Tetromino({
+    { { 0, 0, 0, 0 },
+      { 0, 0, 0, 0 },
+      { 0, 3, 3, 3 },
+      { 0, 0, 3, 0 } },
 
-    { { 0, 0, 0 },
-      { 3, 3, 3 },
-      { 0, 3, 0 } },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 3, 0 },
+      { 0, 3, 3, 0 },
+      { 0, 0, 3, 0 } },
 
-    { { 0, 3, 0 },
-      { 3, 3, 0 },
-      { 0, 3, 0 } },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 3, 0 },
+      { 0, 3, 3, 3 },
+      { 0, 0, 0, 0 } },
 
-    { { 0, 3, 0 },
-      { 3, 3, 3 },
-      { 0, 0, 0 } },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 3, 0 },
+      { 0, 0, 3, 3 },
+      { 0, 0, 3, 0 } },
 
-    { { 0, 3, 0 },
-      { 0, 3, 3 },
-      { 0, 3, 0 } },
-
-    });
+    }, 0, 3);
   }
 
   if (name == "S") {
     return Tetromino({
 
-    { { 0, 0, 0 },
-      { 0, 4, 4 },
-      { 4, 4, 0 } },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 0, 0 },
+      { 0, 0, 4, 4 },
+      { 0, 4, 4, 0 } },
 
-    { { 0, 4, 0 },
-      { 0, 4, 4 },
-      { 0, 0, 4 } }
+    { { 0, 0, 0, 0 },
+      { 0, 0, 4, 0 },
+      { 0, 0, 4, 4 },
+      { 0, 0, 0, 4 } },
 
-    });
+    }, 0, 3);
   }
 
   if (name == "Z") {
     return Tetromino({
 
-    { { 0, 0, 0 },
-      { 5, 5, 0 },
-      { 0, 5, 5 } },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 0, 0 },
+      { 0, 5, 5, 0 },
+      { 0, 0, 5, 5 } },
 
-    { { 0, 0, 5 },
-      { 0, 5, 5 },
-      { 0, 5, 0 } }
+    { { 0, 0, 0, 0 },
+      { 0, 0, 0, 5 },
+      { 0, 0, 5, 5 },
+      { 0, 0, 5, 0 } },
 
-    });
+    }, 0, 2);
   }
 
   if (name == "J") {
     return Tetromino({
-    { { 0, 0, 0 },
-      { 6, 6, 6 },
-      { 0, 0, 6 } },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 0, 0 },
+      { 0, 6, 6, 6 },
+      { 0, 0, 0, 6 } },
 
-    { { 0, 6, 0 },
-      { 0, 6, 0 },
-      { 6, 6, 0 } },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 6, 0 },
+      { 0, 0, 6, 0 },
+      { 0, 6, 6, 0 } },
 
-    { { 6, 0, 0 },
-      { 6, 6, 6 },
-      { 0, 0, 0 } },
+    { { 0, 0, 0, 0 },
+      { 0, 6, 0, 0 },
+      { 0, 6, 6, 6 },
+      { 0, 0, 0, 0 } },
 
-    { { 0, 6, 6 },
-      { 0, 6, 0 },
-      { 0, 6, 0 } }
+    { { 0, 0, 0, 0 },
+      { 0, 0, 6, 6 },
+      { 0, 0, 6, 0 },
+      { 0, 0, 6, 0 } },
 
-    });
+    }, 0, 3);
   }
 
   if (name == "L") {
     return Tetromino({
-    { { 0, 0, 0 },
-      { 7, 7, 7 },
-      { 7, 0, 0 } },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 0, 0 },
+      { 0, 7, 7, 7 },
+      { 0, 7, 0, 0 } },
 
-    { { 7, 7, 0 },
-      { 0, 7, 0 },
-      { 0, 7, 0 } },
+    { { 0, 0, 0, 0 },
+      { 0, 7, 7, 0 },
+      { 0, 0, 7, 0 },
+      { 0, 0, 7, 0 } },
 
-    { { 0, 0, 7 },
-      { 7, 7, 7 },
-      { 0, 0, 0 } },
+    { { 0, 0, 0, 0 },
+      { 0, 0, 0, 7 },
+      { 0, 7, 7, 7 },
+      { 0, 0, 0, 0 } },
 
-    { { 0, 7, 0 },
-      { 0, 7, 0 },
-      { 0, 7, 7 } }
+    { { 0, 0, 0, 0 },
+      { 0, 0, 7, 0 },
+      { 0, 0, 7, 0 },
+      { 0, 0, 7, 7 } },
 
-    });
+    }, 0, 3);
   }
 
 }
@@ -195,6 +215,7 @@ SDL_Texture* blockPinkTexture = nullptr;
 SDL_Texture* blockBlackTexture = nullptr;
 // game rects
 SDL_Rect blockRect;
+SDL_Rect boardRect = { 0, BLOCK_HEIGHT * 2, BLOCK_WIDTH * 10, BLOCK_HEIGHT * 20 };
 
 bool initSDL();
 SDL_Texture* loadTexture(const std::string& path);
@@ -205,6 +226,12 @@ void drawPlay();
 void drawTetromino();
 int random(int min, int max);
 void generateTetromino();
+bool canRotate(int rotationIdx);
+bool canMoveLeft();
+bool canMoveRight();
+bool canMoveDown();
+bool isRowComplete(const std::array<int, 10> row);
+void removeRow(int rowIdx);
 void updateTetromino();
 
 bool initSDL() {
@@ -319,6 +346,10 @@ void drawPlay() {
 	SDL_RenderClear(renderer);
 
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+  SDL_RenderClear(renderer);
+
+  SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+  SDL_RenderFillRect(renderer, &boardRect);
 
   drawTetromino();
 
@@ -341,8 +372,8 @@ void drawTetromino() {
     for (auto col = 0; col < tetromino.shape[row].size(); col++) {
       if (tetromino.shape[row][col] != 0) {
         SDL_Rect rect = {
-          tetromino.x + BLOCK_WIDTH * col,
-          tetromino.y + BLOCK_HEIGHT * row,
+          BLOCK_WIDTH * (col + tetromino.col),
+          BLOCK_HEIGHT * (row + tetromino.row),
           BLOCK_WIDTH,
           BLOCK_HEIGHT
         };
@@ -350,6 +381,7 @@ void drawTetromino() {
       }
     }
   }
+  // std::cout << tetromino.y << std::endl;
 }
 
 // range : [min, max) max no inclusive
@@ -366,7 +398,6 @@ int random(int min, int max) {
 void generateTetromino() {
   const std::string tetrominoName = tetrominoNames[random(0, tetrominoNames.size())];
   tetromino = createTetromino(tetrominoName);
-  // tetromino = createTetromino("I");
 }
 
 bool canRotate(int rotationIdx) {
@@ -430,10 +461,10 @@ bool canMoveDown() {
     for (auto col = 0; col < tetromino.shape[row].size(); col++) {
       if (tetromino.shape[row][col] != 0) {
         // check bottom board collision
-        if (tetromino.row + 1 + row > 15) {
+        if (tetromino.row + 1 + row > 21) {
           return false;
         }
-        // check bottom collision with tetros
+        // check bottom collision with tetrominos
         if (tiles[tetromino.row + 1 + row][tetromino.col + col] != 0) {
           return false;
         }
@@ -461,64 +492,17 @@ void removeRow(int rowIdx) {
 
 void updateTetromino() {
 
+  std::cout << tetromino.row << " : " << tetromino.col << std::endl;
 
-  Uint8 *keys = (Uint8*)SDL_GetKeyboardState(NULL);
-  if(keys[SDL_SCANCODE_DOWN]) {
-    if (tetromino.y ==  tetromino.targetY) {
-      if (tetrominoFallSpeed * 2 > 24) {
-        tetrominoFallSpeed = 24;
-      }
-      else {
-        tetrominoFallSpeed *= 2;
-      }
-    }
-  }
+  tickCurrent = SDL_GetTicks();
+  tickAccum += tickCurrent - tickLast;
+  if (tickAccum > tickDuration) {
 
-  if(keys[SDL_SCANCODE_LEFT]) {
-    if (!tetromino.isMoving  && canMoveLeft()) {
-      tetromino.col -= 1;
-    }
-    // tetro is moving right
-    if (tetromino.targetX > tetromino.x) {
-      tetromino.col -= 1;
-    }
-    tetromino.targetX = tetromino.col * BLOCK_WIDTH;
-    tetromino.isMoving = true;
-  }
-
-  if(keys[SDL_SCANCODE_RIGHT]) {
-    if (!tetromino.isMoving && canMoveRight()) {
-      tetromino.col += 1;
-    }
-    // tetro is moving left
-    if (tetromino.targetX < tetromino.x) {
-      tetromino.col += 1;
-    }
-
-    tetromino.targetX = tetromino.col * BLOCK_WIDTH;
-    tetromino.isMoving = true;
-  }
-
-
-  if (tetromino.isMoving) {
-    if (tetromino.x == tetromino.targetX) {
-      tetromino.isMoving = false;
-    }
-    if (tetromino.targetX < tetromino.x) {
-      tetromino.x -= 16;
-    }
-    if (tetromino.targetX > tetromino.x) {
-      tetromino.x += 16;
-    }
-  }
-
-  if (tetromino.y == tetromino.targetY) {
     if (canMoveDown()) {
       tetromino.row += 1;
-      tetromino.targetY = tetromino.row * BLOCK_HEIGHT;
     }
     else {
-      // tetro has landed
+      // copy falling tetro to landed
       for (auto row = 0; row < tetromino.shape.size(); row++) {
         for (auto col = 0; col < tetromino.shape[row].size(); col++) {
           if (tetromino.shape[row][col] != 0) {
@@ -526,28 +510,26 @@ void updateTetromino() {
           }
         }
       }
-      tetrominoFallSpeed = tetrominoDefaultFallSpeed;
-      generateTetromino();
-    }
-  }
-
-  if (tetromino.y < tetromino.targetY) {
-    tetromino.y += tetrominoFallSpeed;
-  }
-
-  // clear complete lines
-  for (auto rowIdx = 0; rowIdx < tiles.size(); rowIdx++) {
-    if (isRowComplete(tiles[rowIdx])) {
-      removeRow(rowIdx);
-      SDL_Delay(500);
-      // move all rows above the deleted one down by one col
-      for (auto rowAboveIdx = rowIdx -1; rowAboveIdx >= 0; rowAboveIdx--) {
-        for (auto col = 0; col < tiles[rowAboveIdx].size(); col++) {
-          tiles[rowAboveIdx + 1][col] = tiles[rowAboveIdx][col];
+      // clear lines
+      for (auto rowIdx = 0; rowIdx < tiles.size(); rowIdx++) {
+        if (isRowComplete(tiles[rowIdx])) {
+          removeRow(rowIdx);
+          SDL_Delay(500);
+          // move all rows above the deleted one down by one col
+          for (auto rowAboveIdx = rowIdx -1; rowAboveIdx >= 0; rowAboveIdx--) {
+            for (auto col = 0; col < tiles[rowAboveIdx].size(); col++) {
+              tiles[rowAboveIdx + 1][col] = tiles[rowAboveIdx][col];
+            }
+          }
         }
       }
+
+      generateTetromino();
     }
+
+    tickAccum -= tickDuration;
   }
+  tickLast = SDL_GetTicks();
 
 }
 
@@ -584,10 +566,26 @@ int main( int argc, char* args[] ) {
 
         }
       }
+
+      if(event.type == SDL_KEYDOWN) {
+        if(event.key.keysym.sym == SDLK_LEFT) {
+          if (canMoveLeft()) {
+            tetromino.col -= 1;
+          }
+        }
+        if(event.key.keysym.sym == SDLK_RIGHT) {
+          if (canMoveRight()) {
+            tetromino.col += 1;
+          }
+        }
+        if(event.key.keysym.sym == SDLK_DOWN) {
+          tickDuration /= 2;
+        }
+      }
     }
 
-		updateTetromino();
-		drawPlay();
+    updateTetromino();
+    drawPlay();
 
     int frameTime = SDL_GetTicks() - oldTime;
     if(frameTime < DELAY_TIME) {
