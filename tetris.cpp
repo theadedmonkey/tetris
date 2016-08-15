@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <algorithm>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -34,6 +35,7 @@ const int BLOCK_WIDTH = 32;
 const int BLOCK_HEIGHT = 32;
 
 // tetrominos
+bool hasLanded = false;
 std::vector<std::string> tetrominoNames = { "I", "O", "T", "S", "Z", "J", "L" };
 
 struct Tetromino {
@@ -216,6 +218,25 @@ SDL_Texture* blockBlackTexture = nullptr;
 // game rects
 SDL_Rect blockRect;
 SDL_Rect boardRect = { 0, BLOCK_HEIGHT * 2, BLOCK_WIDTH * 10, BLOCK_HEIGHT * 20 };
+// piet
+struct Line {
+
+  Line() {}
+
+  Line(int t_x1, int t_y1, int t_x2, int t_y2) : x1(t_x1), y1(t_y1), x2(t_x2), y2(t_y2) {}
+
+  int x1, y1, x2, y2;
+};
+
+std::vector<SDL_Point> takedPoints;
+
+std::vector<Line> guides;
+std::vector<Line> generateGuides();
+void drawGuides();
+
+std::vector<Line> lines;
+std::vector<Line> generateLines();
+void drawLines();
 
 bool initSDL();
 SDL_Texture* loadTexture(const std::string& path);
@@ -339,7 +360,202 @@ bool initGame() {
 }
 
 void resetPlay() {
+  guides = generateGuides();
+  lines = generateLines();
   generateTetromino();
+}
+
+
+// 8 tiles of padding left and right, 10 tiles for the board
+// backround starts at 96 x
+// background starts at 64 y
+// tile x size 320 10 rows
+// tile y size 640 20 rows
+const int BOARD_LEFT = 352;
+const int BOARD_TOP = 64;
+const int BOARD_RIGHT = 672;
+const int BOARD_BOTTOM = 640;
+
+const int PICTURE_LEFT = 96;
+const int PICTURE_TOP = 32;
+const int PICTURE_RIGHT = 928;
+const int PICTURE_BOTTOM = 736;
+
+std::vector<Line> generateGuides() {
+
+  std::vector<int> coordsX;
+  for (auto i = 0; i < 10; i++) {
+    coordsX.push_back(i * BLOCK_WIDTH + BOARD_LEFT);
+  }
+
+  std::vector<int> coordsY;
+  for (auto i = 0; i < 20; i++) {
+    coordsY.push_back(i * BLOCK_HEIGHT + BOARD_TOP);
+  }
+
+  /*
+  SDL_Point pointA;
+  pointA.x = BOARD_LEFT;
+  pointA.y = coordsY[random(0, coordsY.size())];
+
+  SDL_Point pointB;
+  pointB.x = BOARD_RIGHT;
+  pointB.y = pointA.y;
+  */
+
+  int horGuideX1 = BOARD_LEFT;
+  int horGuideY1 = coordsY[random(0, coordsY.size())];
+  int horGuideX2 = BOARD_RIGHT;
+  int horGuideY2 = horGuideY1;
+
+  int verGuideX1 = coordsX[random(0, coordsX.size())];
+  int verGuideY1 = BOARD_TOP;
+  int verGuideX2 = verGuideX1;
+  int verGuideY2 = BOARD_BOTTOM;
+
+  std::vector<Line> guides;
+  guides.push_back(Line(horGuideX1, horGuideY1, horGuideX2, horGuideY2));
+  guides.push_back(Line(verGuideX1, verGuideY1, verGuideX2, verGuideY2));
+
+  takedPoints.push_back({ horGuideX1, horGuideY1 });
+  takedPoints.push_back({ horGuideX2, horGuideY2 });
+
+  takedPoints.push_back({ verGuideX1, verGuideY1 });
+  takedPoints.push_back({ verGuideX2, verGuideY2 });
+
+  return guides;
+
+}
+
+std::vector<Line> horLines;
+std::vector<Line> verLines;
+
+std::vector<int> getHorLinesYs() {
+  std::vector<int> ys;
+  for (auto i = 0; i < horLines.size(); i++) {
+    ys.push_back(horLines[i].y1);
+  }
+  return ys;
+}
+
+std::vector<int> getVerLinesXs() {
+  std::vector<int> xs;
+  for (auto i = 0; i < verLines.size(); i++) {
+    xs.push_back(verLines[i].x1);
+  }
+  return xs;
+}
+
+std::vector<Line> generateLines() {
+
+  std::vector<int> coordsX;
+  for (auto i = 0; i < 26; i++) {
+    coordsX.push_back(i * BLOCK_WIDTH + PICTURE_LEFT);
+  }
+
+  std::vector<int> coordsY;
+  for (auto i = 0; i < 22; i++) {
+    coordsY.push_back(i * BLOCK_HEIGHT + PICTURE_TOP);
+  }
+
+  int horLineX1 = PICTURE_LEFT;
+  int horLineY1 = coordsY[random(0, coordsY.size())];
+  int horLineX2 = PICTURE_RIGHT;
+  int horLineY2 = horLineY1;
+
+  int verLineX1 = coordsX[random(0, coordsX.size())];
+  int verLineY1 = PICTURE_TOP;
+  int verLineX2 = verLineX1;
+  int verLineY2 = PICTURE_BOTTOM;
+
+  std::vector<Line> lines;
+  lines.push_back(Line(horLineX1, horLineY1, horLineX2, horLineY2));
+  lines.push_back(Line(verLineX1, verLineY1, verLineX2, verLineY2));
+
+  takedPoints.push_back({ horLineX1, horLineY1 });
+  takedPoints.push_back({ horLineX2, horLineY2 });
+
+  takedPoints.push_back({ verLineX1, verLineY1 });
+  takedPoints.push_back({ verLineX2, verLineY2 });
+
+  horLines.push_back(Line(horLineX1, horLineY1, horLineX2, horLineY2));
+  verLines.push_back(Line(verLineX1, verLineY1, verLineX2, verLineY2));
+
+  /*
+  std::vector<int> verLinesX;
+  for (auto i = 0; i < verLines.size(); i++) {
+    verLinesX.push_back(verLines[i].x1);
+  }
+  */
+  /*
+  int x1 = coordsX[random(0, coordsX.size())];
+  int y1 = coordsY[random(0, coordsY.size())];
+  int x2 = verLinesX[random(0, verLinesX.size())];
+  int y2 = y1;
+
+  lines.push_back(Line(x1, y1, x2, y2));
+  */
+
+  std::vector<int> horLinesYs;
+  std::vector<int> verLinesXs;
+  int align;
+  int x1, y1, x2, y2;
+  int splitsCount = 40;
+  while (splitsCount > 0) {
+    align = random(0, 2);
+    std::cout << align << std::endl;
+
+    // hor line
+    if (align == 0) {
+      x1 = coordsX[random(0, coordsX.size())];
+      y1 = coordsY[random(0, coordsY.size())];
+
+      verLinesXs = getVerLinesXs();
+      x2 = verLinesXs[random(0, verLinesXs.size())];
+      y2 = y1;
+
+      horLines.push_back(Line(x1, y1, x2, y2));
+    }
+
+    // ver line
+    if (align == 1) {
+      x1 = coordsX[random(0, coordsX.size())];
+      y1 = coordsY[random(0, coordsY.size())];
+      x2 = x1;
+
+      horLinesYs = getHorLinesYs();
+      y2 = horLinesYs[random(0, horLinesYs.size())];
+
+      verLines.push_back(Line(x1, y1, x2, y2));
+    }
+
+    lines.push_back(Line(x1, y1, x2, y2));
+
+    --splitsCount;
+  }
+
+  return lines;
+
+}
+
+void drawGuides() {
+  SDL_SetRenderDrawColor(renderer, 255, 000, 000, 255);
+
+  Line guide;
+  for (auto i = 0; i < guides.size(); i++) {
+    guide = guides[i];
+    SDL_RenderDrawLine(renderer, guide.x1, guide.y1, guide.x2, guide.y2);
+  }
+}
+
+void drawLines() {
+  SDL_SetRenderDrawColor(renderer, 000, 000, 000, 255);
+
+  Line line;
+  for (auto i = 0; i < lines.size(); i++) {
+    line = lines[i];
+    SDL_RenderDrawLine(renderer, line.x1, line.y1, line.x2, line.y2);
+  }
 }
 
 void drawPlay() {
@@ -348,12 +564,13 @@ void drawPlay() {
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
   SDL_RenderClear(renderer);
 
-  SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
-  SDL_RenderFillRect(renderer, &boardRect);
+  // SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+  // SDL_RenderFillRect(renderer, &boardRect);
 
-  drawTetromino();
+  // drawTetromino();
 
   // draw landed tetrominos
+  /*
 	for (auto row = 0; row < tiles.size(); row++) {
 		for (auto col = 0; col < tiles[row].size(); col++) {
 			if (tiles[row][col] != 0) {
@@ -362,7 +579,10 @@ void drawPlay() {
 			}
 		}
 	}
+  */
 
+  drawLines();
+  drawGuides();
 	SDL_RenderPresent(renderer);
 }
 
@@ -492,13 +712,14 @@ void removeRow(int rowIdx) {
 
 void updateTetromino() {
 
-  std::cout << tetromino.row << " : " << tetromino.col << std::endl;
+  // std::cout << tetromino.row << " : " << tetromino.col << std::endl;
 
   tickCurrent = SDL_GetTicks();
   tickAccum += tickCurrent - tickLast;
   if (tickAccum > tickDuration) {
 
     if (canMoveDown()) {
+      hasLanded = false;
       tetromino.row += 1;
     }
     else {
@@ -523,7 +744,7 @@ void updateTetromino() {
           }
         }
       }
-
+      hasLanded = true;
       generateTetromino();
     }
 
