@@ -3,6 +3,7 @@
 #include <vector>
 #include <array>
 #include <algorithm>
+#include <random>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -223,7 +224,25 @@ struct Line {
 
   Line() {}
 
-  Line(int t_x1, int t_y1, int t_x2, int t_y2) : x1(t_x1), y1(t_y1), x2(t_x2), y2(t_y2) {}
+  Line(int t_x1, int t_y1, int t_x2, int t_y2) {
+    if (t_x1 <= t_x2) {
+      x1 = t_x1;
+      x2 = t_x2;
+    }
+    else {
+      x1 = t_x2;
+      x2 = t_x1;
+    }
+
+    if (t_y1 <= t_y2) {
+      y1 = t_y1;
+      y2 = t_y2;
+    }
+    else {
+      y1 = t_y2;
+      y2 = t_y1;
+    }
+  }
 
   int x1, y1, x2, y2;
 };
@@ -393,16 +412,6 @@ std::vector<Line> generateGuides() {
     coordsY.push_back(i * BLOCK_HEIGHT + BOARD_TOP);
   }
 
-  /*
-  SDL_Point pointA;
-  pointA.x = BOARD_LEFT;
-  pointA.y = coordsY[random(0, coordsY.size())];
-
-  SDL_Point pointB;
-  pointB.x = BOARD_RIGHT;
-  pointB.y = pointA.y;
-  */
-
   int horGuideX1 = BOARD_LEFT;
   int horGuideY1 = coordsY[random(0, coordsY.size())];
   int horGuideX2 = BOARD_RIGHT;
@@ -427,23 +436,63 @@ std::vector<Line> generateGuides() {
 
 }
 
-std::vector<Line> horLines;
-std::vector<Line> verLines;
+std::vector<Line> getHorLines() {
+  std::vector<Line> horLines;
 
-std::vector<int> getHorLinesYs() {
-  std::vector<int> ys;
-  for (auto i = 0; i < horLines.size(); i++) {
-    ys.push_back(horLines[i].y1);
+  Line line;
+  for (auto i = 0; i < lines.size(); i++) {
+    line = lines[i];
+    if (line.y1 == line.y2) {
+      horLines.push_back(line);
+    }
   }
-  return ys;
+
+  return horLines;
 }
 
-std::vector<int> getVerLinesXs() {
-  std::vector<int> xs;
-  for (auto i = 0; i < verLines.size(); i++) {
-    xs.push_back(verLines[i].x1);
+
+std::vector<Line> getVerLines() {
+  std::vector<Line> verLines;
+
+  Line line;
+  for (auto i = 0; i < lines.size(); i++) {
+    line = lines[i];
+    if (line.x1 == line.x2) {
+      verLines.push_back(line);
+    }
   }
+
+  return verLines;
+}
+
+std::vector<int> getXIntercepts(int y) {
+  std::vector<int> xs;
+
+  std::vector<Line> verLines = getVerLines();
+  Line line;
+  for (auto i = 0; i < verLines.size(); i++) {
+    line = verLines[i];
+    if (line.y1 <= y && line.y2 >= y) {
+      xs.push_back(line.x1);
+    }
+  }
+
   return xs;
+}
+
+std::vector<int> getYIntercepts(int x) {
+  std::vector<int> ys;
+
+  std::vector<Line> horLines = getHorLines();
+  Line line;
+  for (auto i = 0; i < horLines.size(); i++) {
+    line = horLines[i];
+    if (line.x1 <= x && line.x2 >= x) {
+      ys.push_back(line.y1);
+    }
+  }
+
+  return ys;
 }
 
 std::vector<Line> generateLines() {
@@ -458,80 +507,51 @@ std::vector<Line> generateLines() {
     coordsY.push_back(i * BLOCK_HEIGHT + PICTURE_TOP);
   }
 
-  int horLineX1 = PICTURE_LEFT;
-  int horLineY1 = coordsY[random(0, coordsY.size())];
-  int horLineX2 = PICTURE_RIGHT;
-  int horLineY2 = horLineY1;
+  lines.push_back(Line(PICTURE_LEFT, PICTURE_TOP, PICTURE_RIGHT, PICTURE_TOP));
+  lines.push_back(Line(PICTURE_RIGHT, PICTURE_TOP, PICTURE_RIGHT, PICTURE_BOTTOM));
+  lines.push_back(Line(PICTURE_RIGHT, PICTURE_BOTTOM, PICTURE_LEFT, PICTURE_BOTTOM));
+  lines.push_back(Line(PICTURE_LEFT, PICTURE_BOTTOM, PICTURE_LEFT, PICTURE_TOP));
 
-  int verLineX1 = coordsX[random(0, coordsX.size())];
-  int verLineY1 = PICTURE_TOP;
-  int verLineX2 = verLineX1;
-  int verLineY2 = PICTURE_BOTTOM;
+  std::vector<int> xIntercepts;
+  std::vector<int> yIntercepts;
 
-  std::vector<Line> lines;
-  lines.push_back(Line(horLineX1, horLineY1, horLineX2, horLineY2));
-  lines.push_back(Line(verLineX1, verLineY1, verLineX2, verLineY2));
-
-  takedPoints.push_back({ horLineX1, horLineY1 });
-  takedPoints.push_back({ horLineX2, horLineY2 });
-
-  takedPoints.push_back({ verLineX1, verLineY1 });
-  takedPoints.push_back({ verLineX2, verLineY2 });
-
-  horLines.push_back(Line(horLineX1, horLineY1, horLineX2, horLineY2));
-  verLines.push_back(Line(verLineX1, verLineY1, verLineX2, verLineY2));
-
-  /*
-  std::vector<int> verLinesX;
-  for (auto i = 0; i < verLines.size(); i++) {
-    verLinesX.push_back(verLines[i].x1);
-  }
-  */
-  /*
-  int x1 = coordsX[random(0, coordsX.size())];
-  int y1 = coordsY[random(0, coordsY.size())];
-  int x2 = verLinesX[random(0, verLinesX.size())];
-  int y2 = y1;
-
-  lines.push_back(Line(x1, y1, x2, y2));
-  */
-
-  std::vector<int> horLinesYs;
-  std::vector<int> verLinesXs;
-  int align;
+  int align = 0;
   int x1, y1, x2, y2;
   int splitsCount = 40;
   while (splitsCount > 0) {
     align = random(0, 2);
-    std::cout << align << std::endl;
+    // std::cout << align << std::endl;
+    // align = 0;
 
-    // hor line
     if (align == 0) {
-      x1 = coordsX[random(0, coordsX.size())];
       y1 = coordsY[random(0, coordsY.size())];
-
-      verLinesXs = getVerLinesXs();
-      x2 = verLinesXs[random(0, verLinesXs.size())];
       y2 = y1;
 
-      horLines.push_back(Line(x1, y1, x2, y2));
+      xIntercepts = getXIntercepts(y1);
+      auto engine = std::default_random_engine{};
+      std::shuffle(std::begin(xIntercepts), std::end(xIntercepts), engine);
+
+      x1 = xIntercepts[0];
+      x2 = xIntercepts[1];
+
     }
 
-    // ver line
     if (align == 1) {
       x1 = coordsX[random(0, coordsX.size())];
-      y1 = coordsY[random(0, coordsY.size())];
       x2 = x1;
 
-      horLinesYs = getHorLinesYs();
-      y2 = horLinesYs[random(0, horLinesYs.size())];
+      yIntercepts = getYIntercepts(x1);
+      auto engine = std::default_random_engine{};
+      std::shuffle(std::begin(yIntercepts), std::end(yIntercepts), engine);
 
-      verLines.push_back(Line(x1, y1, x2, y2));
+      y1 = yIntercepts[0];
+      y2 = yIntercepts[1];
+
     }
 
     lines.push_back(Line(x1, y1, x2, y2));
-
     --splitsCount;
+
   }
 
   return lines;
