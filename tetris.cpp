@@ -9,7 +9,6 @@
 // screen dimension constants
 const int SCREEN_WIDTH = 1024;
 const int SCREEN_WIDTH_HALF = SCREEN_WIDTH / 2;
-
 const int SCREEN_HEIGHT = 768;
 const int SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
 
@@ -29,9 +28,19 @@ int tickCurrent;
 int tickLast;
 int tickAccum;
 
-// game data
+// block size
 const int BLOCK_WIDTH = 32;
 const int BLOCK_HEIGHT = 32;
+
+// board background size
+const int BOARD_BACKGROUND_WIDTH = BLOCK_WIDTH * 10;
+const int BOARD_BACKGROUND_WIDTH_HALF = BOARD_BACKGROUND_WIDTH / 2;
+const int BOARD_BACKGROUND_HEIGHT = BLOCK_HEIGHT * 20;
+const int BOARD_BACKGROUND_HEIGHT_HALF = BOARD_BACKGROUND_HEIGHT / 2;
+
+// board background position
+const int BOARD_BACKGROUND_LEFT = SCREEN_WIDTH_HALF - BOARD_BACKGROUND_WIDTH_HALF;
+const int BOARD_BACKGROUND_TOP = SCREEN_HEIGHT_HALF - BOARD_BACKGROUND_HEIGHT_HALF;
 
 // tetrominos
 std::vector<std::string> tetrominoNames = { "I", "O", "T", "S", "Z", "J", "L" };
@@ -215,7 +224,12 @@ SDL_Texture* blockPinkTexture = nullptr;
 SDL_Texture* blockBlackTexture = nullptr;
 // game rects
 SDL_Rect blockRect;
-SDL_Rect boardRect = { 0, BLOCK_HEIGHT * 2, BLOCK_WIDTH * 10, BLOCK_HEIGHT * 20 };
+SDL_Rect boardBackgroundRect = {
+  BOARD_BACKGROUND_LEFT,
+  BOARD_BACKGROUND_TOP,
+  BOARD_BACKGROUND_WIDTH,
+  BOARD_BACKGROUND_HEIGHT
+};
 
 bool initSDL();
 SDL_Texture* loadTexture(const std::string& path);
@@ -223,6 +237,7 @@ bool loadMedia();
 bool initGame();
 void resetPlay();
 void drawPlay();
+void drawBoardBackground();
 void drawTetromino();
 int random(int min, int max);
 void generateTetromino();
@@ -348,16 +363,19 @@ void drawPlay() {
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
   SDL_RenderClear(renderer);
 
-  SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
-  SDL_RenderFillRect(renderer, &boardRect);
-
+  drawBoardBackground();
   drawTetromino();
 
   // draw landed tetrominos
 	for (auto row = 0; row < tiles.size(); row++) {
 		for (auto col = 0; col < tiles[row].size(); col++) {
 			if (tiles[row][col] != 0) {
-				blockRect = { BLOCK_WIDTH * col, BLOCK_HEIGHT * row, BLOCK_WIDTH, BLOCK_HEIGHT };
+				blockRect = {
+          BLOCK_WIDTH  * col + BOARD_BACKGROUND_LEFT,
+          BLOCK_HEIGHT * row + BOARD_BACKGROUND_TOP - 64,
+          BLOCK_WIDTH,
+          BLOCK_HEIGHT
+        };
 				SDL_RenderCopy(renderer, blockTextures[tiles[row][col]], nullptr, &blockRect);
 			}
 		}
@@ -366,18 +384,26 @@ void drawPlay() {
 	SDL_RenderPresent(renderer);
 }
 
+void drawBoardBackground() {
+  SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+  SDL_RenderFillRect(renderer, &boardBackgroundRect);
+}
+
 void drawTetromino() {
   // draws a falling tetromino
   for (auto row = 0; row < tetromino.shape.size(); row++) {
     for (auto col = 0; col < tetromino.shape[row].size(); col++) {
       if (tetromino.shape[row][col] != 0) {
+        // dont draw first two rows of tetrominos
+        if (row + tetromino.row > 1) {
         SDL_Rect rect = {
-          BLOCK_WIDTH * (col + tetromino.col),
-          BLOCK_HEIGHT * (row + tetromino.row),
+          BLOCK_WIDTH  * (col + tetromino.col) + BOARD_BACKGROUND_LEFT,
+          BLOCK_HEIGHT * (row + tetromino.row) + BOARD_BACKGROUND_TOP - 64,
           BLOCK_WIDTH,
           BLOCK_HEIGHT
         };
         SDL_RenderCopy(renderer, blockTextures[tetromino.shape[row][col]], nullptr, &rect);
+        }
       }
     }
   }
@@ -398,6 +424,8 @@ int random(int min, int max) {
 void generateTetromino() {
   const std::string tetrominoName = tetrominoNames[random(0, tetrominoNames.size())];
   tetromino = createTetromino(tetrominoName);
+  // tetromino = createTetromino("I");
+
 }
 
 bool canRotate(int rotationIdx) {
@@ -492,7 +520,7 @@ void removeRow(int rowIdx) {
 
 void updateTetromino() {
 
-  std::cout << tetromino.row << " : " << tetromino.col << std::endl;
+  // std::cout << tetromino.row << " : " << tetromino.col << std::endl;
 
   tickCurrent = SDL_GetTicks();
   tickAccum += tickCurrent - tickLast;
