@@ -212,7 +212,9 @@ Tetromino createTetromino(std::string name) {
 
 Tetromino tetromino;
 
-// game textures
+SDL_Texture* playBackgroundTexture = nullptr;
+
+// mino textures
 std::vector<SDL_Texture*> blockTextures;
 SDL_Texture* blockTexture = nullptr;
 SDL_Texture* blockRedTexture = nullptr;
@@ -222,8 +224,12 @@ SDL_Texture* blockBlueTexture = nullptr;
 SDL_Texture* blockLightBlueTexture = nullptr;
 SDL_Texture* blockPinkTexture = nullptr;
 SDL_Texture* blockBlackTexture = nullptr;
+
 // game rects
 SDL_Rect blockRect;
+
+SDL_Rect playBackgroundRect = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
+
 SDL_Rect boardBackgroundRect = {
   BOARD_BACKGROUND_LEFT,
   BOARD_BACKGROUND_TOP,
@@ -237,6 +243,7 @@ bool loadMedia();
 bool initGame();
 void resetPlay();
 void drawPlay();
+void drawPlayBackground();
 void drawBoardBackground();
 void drawTetromino();
 int random(int min, int max);
@@ -291,6 +298,13 @@ SDL_Texture* loadTexture(const std::string &path) {
 }
 
 bool loadMedia() {
+  // play background
+  playBackgroundTexture = loadTexture("assets/play-background.jpg");
+  if (!playBackgroundTexture) {
+    return false;
+  }
+
+  // mino textures
 	blockRedTexture = loadTexture("assets/block-red.png");
 	if(!blockRedTexture) {
 		return false;
@@ -360,9 +374,7 @@ void resetPlay() {
 void drawPlay() {
 	SDL_RenderClear(renderer);
 
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-  SDL_RenderClear(renderer);
-
+  drawPlayBackground();
   drawBoardBackground();
   drawTetromino();
 
@@ -382,6 +394,10 @@ void drawPlay() {
 	}
 
 	SDL_RenderPresent(renderer);
+}
+
+void drawPlayBackground() {
+  SDL_RenderCopy(renderer, playBackgroundTexture, nullptr, &playBackgroundRect);
 }
 
 void drawBoardBackground() {
@@ -407,7 +423,6 @@ void drawTetromino() {
       }
     }
   }
-  // std::cout << tetromino.y << std::endl;
 }
 
 // range : [min, max) max no inclusive
