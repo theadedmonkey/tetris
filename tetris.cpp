@@ -23,10 +23,11 @@ SDL_Renderer* renderer = nullptr;
 // 22 rows 10 cols
 std::array<std::array<int, 10>, 22> tiles;
 
-int tickDuration = 500.0f;
-int tickCurrent;
-int tickLast;
-int tickAccum;
+int tickDurationDefault = 500.0f;
+int tickDuration = tickDurationDefault;
+int tickCurrent = 0;
+int tickLast = 0;
+int tickAccum = 0;
 
 // block size
 const int BLOCK_WIDTH = 32;
@@ -533,6 +534,19 @@ void removeRow(int rowIdx) {
   }
 }
 
+bool isGameOver() {
+  // loop over first visible row
+  for (auto col = 0; col < tiles[2].size(); col++) {
+    if (tiles[2][col] != 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool hasLanded = false;
+
 void updateTetromino() {
 
   // std::cout << tetromino.row << " : " << tetromino.col << std::endl;
@@ -543,8 +557,10 @@ void updateTetromino() {
 
     if (canMoveDown()) {
       tetromino.row += 1;
+      hasLanded = false;
     }
     else {
+      hasLanded = true;
       // copy falling tetro to landed
       for (auto row = 0; row < tetromino.shape.size(); row++) {
         for (auto col = 0; col < tetromino.shape[row].size(); col++) {
@@ -567,13 +583,15 @@ void updateTetromino() {
         }
       }
 
+      tickDuration = tickDurationDefault;
       generateTetromino();
-    }
 
+    }
+    // reset accum
     tickAccum -= tickDuration;
   }
-  tickLast = SDL_GetTicks();
 
+  tickLast = tickCurrent;
 }
 
 int main( int argc, char* args[] ) {
@@ -622,7 +640,8 @@ int main( int argc, char* args[] ) {
           }
         }
         if(event.key.keysym.sym == SDLK_DOWN) {
-          tickDuration /= 2;
+          tickDuration = hasLanded ? tickDurationDefault : tickDuration / 2;
+          // tickDuration /= 2;
         }
       }
     }
