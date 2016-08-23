@@ -22,6 +22,16 @@ SDL_Renderer* renderer = nullptr;
 
 // 22 rows 10 cols
 std::array<std::array<int, 10>, 22> tiles;
+// the score for clearing lines depends on the level
+int score = 0;
+// advance one level when clear 10 lines
+int level = 0;
+// the number of lines cleared
+int clearedLinesCount = 0;
+
+TTF_Font* font = nullptr;
+const int FONT_SIZE = 64;
+SDL_Color FONT_COLOR = { 255, 255, 000, 255 };
 
 int tickDurationDefault = 500.0f;
 int tickDuration = tickDurationDefault;
@@ -213,8 +223,8 @@ Tetromino createTetromino(std::string name) {
 
 Tetromino tetromino;
 
+SDL_Texture* levelTextTexture = nullptr;
 SDL_Texture* playBackgroundTexture = nullptr;
-
 // mino textures
 std::vector<SDL_Texture*> blockTextures;
 SDL_Texture* blockTexture = nullptr;
@@ -228,18 +238,19 @@ SDL_Texture* blockBlackTexture = nullptr;
 
 // game rects
 SDL_Rect blockRect;
-
 SDL_Rect playBackgroundRect = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
-
 SDL_Rect boardBackgroundRect = {
   BOARD_BACKGROUND_LEFT,
   BOARD_BACKGROUND_TOP,
   BOARD_BACKGROUND_WIDTH,
   BOARD_BACKGROUND_HEIGHT
 };
+SDL_Rect levelTextRect;
+SDL_Rect levelBackgroundRect = { BOARD_BACKGROUND_LEFT - 128 - 32, BOARD_BACKGROUND_TOP, 128, 128 };
 
 bool initSDL();
 SDL_Texture* loadTexture(const std::string& path);
+SDL_Texture* loadTextTexture(std::string text, SDL_Color color);
 bool loadMedia();
 bool initGame();
 void resetPlay();
@@ -247,6 +258,7 @@ void drawPlay();
 void drawPlayBackground();
 void drawBoardBackground();
 void drawTetromino();
+void drawLevel();
 int random(int min, int max);
 void generateTetromino();
 bool canRotate(int rotationIdx);
@@ -298,7 +310,30 @@ SDL_Texture* loadTexture(const std::string &path) {
   return texture;
 }
 
+SDL_Texture* loadTextTexture(TTF_Font* font, std::string text, SDL_Color color) {
+  // render text surface
+	SDL_Surface* textSurface = TTF_RenderText_Solid(font, text.c_str(), color);
+	if(!textSurface) {
+	  std::cout << "Failed to render text surface error: " << TTF_GetError() << std::endl;
+		return nullptr;
+	}
+  // create texture from surface pixels
+  SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+  if(!textTexture) {
+	 std::cout << "Failed to create text texture from text surface error: " << SDL_GetError() << std::endl;
+	 return nullptr;
+  }
+
+  SDL_FreeSurface(textSurface);
+	return textTexture;
+}
+
 bool loadMedia() {
+  font = TTF_OpenFont("assets/Exo2-Regular.ttf", FONT_SIZE);
+  if(!font) {
+    return false;
+  }
+
   // play background
   playBackgroundTexture = loadTexture("assets/play-background.jpg");
   if (!playBackgroundTexture) {
@@ -378,6 +413,7 @@ void drawPlay() {
   drawPlayBackground();
   drawBoardBackground();
   drawTetromino();
+  drawLevel();
 
   // draw landed tetrominos
 	for (auto row = 0; row < tiles.size(); row++) {
@@ -424,6 +460,29 @@ void drawTetromino() {
       }
     }
   }
+}
+
+void drawLevel() {
+  // render level background
+  SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+  SDL_RenderFillRect(renderer, &levelBackgroundRect);
+
+  // render level text;
+  if(levelTextTexture) {
+		SDL_DestroyTexture(levelTextTexture);
+	}
+
+	levelTextTexture = loadTextTexture(font, std::to_string(level), FONT_COLOR);
+	int levelTextRectW, levelTextRectH;
+	SDL_QueryTexture(levelTextTexture, nullptr, nullptr, &levelTextRectW, &levelTextRectH);
+
+	levelTextRect = {
+    levelBackgroundRect.x + levelBackgroundRect.w / 2 - levelTextRectW / 2,
+    levelBackgroundRect.y + levelBackgroundRect.h / 2 - levelTextRectH / 2,
+    levelTextRectW,
+    levelTextRectH
+  };
+	SDL_RenderCopy(renderer, levelTextTexture, nullptr, &levelTextRect);
 }
 
 // range : [min, max) max no inclusive
@@ -573,13 +632,18 @@ void updateTetromino() {
       for (auto rowIdx = 0; rowIdx < tiles.size(); rowIdx++) {
         if (isRowComplete(tiles[rowIdx])) {
           removeRow(rowIdx);
-          SDL_Delay(500);
+          clearedLinesCount += 1;
+          if (clearedLinesCount == 2) {
+            clearedLinesCount = 0;
+            level += 1;
+          }
           // move all rows above the deleted one down by one col
           for (auto rowAboveIdx = rowIdx -1; rowAboveIdx >= 0; rowAboveIdx--) {
             for (auto col = 0; col < tiles[rowAboveIdx].size(); col++) {
               tiles[rowAboveIdx + 1][col] = tiles[rowAboveIdx][col];
             }
           }
+          SDL_Delay(500);
         }
       }
 
