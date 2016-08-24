@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <algorithm>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -71,12 +72,15 @@ struct Tetromino {
   Tetromino() {}
 
   Tetromino(
+    std::string t_name,
     std::vector<std::vector<std::vector<int>>> t_shapes,
     int t_row = 0,
     int t_col = 0
-  ) : shapes(t_shapes), row(t_row), col(t_col) {
+  ) : name(t_name), shapes(t_shapes), row(t_row), col(t_col) {
     shape = shapes[shapeIdx];
   }
+
+  std::string name = "";
 
   int col = 0;
   int row = 0;
@@ -96,7 +100,7 @@ struct Tetromino {
 Tetromino createTetromino(std::string name) {
 
   if (name == "I") {
-    return Tetromino({
+    return Tetromino(name, {
 
     { { 0, 0, 0, 0 },
       { 0, 0, 0, 0 },
@@ -112,7 +116,7 @@ Tetromino createTetromino(std::string name) {
   }
 
   if (name == "O") {
-    return Tetromino({
+    return Tetromino(name, {
 
     { { 0, 0, 0, 0 },
       { 0, 0, 0, 0 },
@@ -124,7 +128,7 @@ Tetromino createTetromino(std::string name) {
   }
 
   if (name == "T") {
-    return Tetromino({
+    return Tetromino(name, {
     { { 0, 0, 0, 0 },
       { 0, 0, 0, 0 },
       { 0, 3, 3, 3 },
@@ -149,7 +153,7 @@ Tetromino createTetromino(std::string name) {
   }
 
   if (name == "S") {
-    return Tetromino({
+    return Tetromino(name, {
 
     { { 0, 0, 0, 0 },
       { 0, 0, 0, 0 },
@@ -165,7 +169,7 @@ Tetromino createTetromino(std::string name) {
   }
 
   if (name == "Z") {
-    return Tetromino({
+    return Tetromino(name, {
 
     { { 0, 0, 0, 0 },
       { 0, 0, 0, 0 },
@@ -181,7 +185,7 @@ Tetromino createTetromino(std::string name) {
   }
 
   if (name == "J") {
-    return Tetromino({
+    return Tetromino(name, {
     { { 0, 0, 0, 0 },
       { 0, 0, 0, 0 },
       { 0, 6, 6, 6 },
@@ -206,7 +210,7 @@ Tetromino createTetromino(std::string name) {
   }
 
   if (name == "L") {
-    return Tetromino({
+    return Tetromino(name, {
     { { 0, 0, 0, 0 },
       { 0, 0, 0, 0 },
       { 0, 7, 7, 7 },
@@ -233,6 +237,7 @@ Tetromino createTetromino(std::string name) {
 }
 
 Tetromino tetromino;
+Tetromino nextTetromino;
 
 SDL_Texture* levelTextTexture = nullptr;
 SDL_Texture* scoreTextTexture = nullptr;
@@ -261,6 +266,12 @@ SDL_Rect levelTextRect;
 SDL_Rect levelBackgroundRect = { BOARD_BACKGROUND_LEFT - 128 - 32, BOARD_BACKGROUND_TOP, 128, 128 };
 SDL_Rect scoreTextRect;
 SDL_Rect scoreBackgroundRect = { BOARD_BACKGROUND_RIGHT + 32, BOARD_BACKGROUND_TOP, 128, 128 };
+SDL_Rect nextTetrominoBackgroundRect = {
+  BOARD_BACKGROUND_RIGHT + 32,
+  BOARD_BACKGROUND_TOP + 128 + 32,
+  160,
+  160
+};
 
 bool initSDL();
 SDL_Texture* loadTexture(const std::string& path);
@@ -275,8 +286,9 @@ void drawBoardBackground();
 void drawTetromino();
 void drawLevel();
 void drawScore();
+void drawNextTetromino();
 int random(int min, int max);
-void generateTetromino();
+Tetromino generateTetromino();
 bool canRotate(int rotationIdx);
 bool canMoveLeft();
 bool canMoveRight();
@@ -425,8 +437,46 @@ bool initGame() {
 }
 
 void resetPlay() {
-  generateTetromino();
+  // generateTetromino();
+  tetromino = generateTetromino();
+  nextTetromino = generateTetromino();
 }
+
+/*
+int getTetrominoW(Tetromino& tetromino) {
+  int tetromino_w = 0;
+  std::vector<int> filledColIdxs;
+  for (auto row = 0; row < tetromino.shape.size(); row++) {
+    for (auto col = 0; col < tetromino.shape[row].size(); col++) {
+      if (tetromino.shape[row][col] != 0) {
+        // col not in filledColIdxs
+        if(std::find(filledColIdxs.begin(), filledColIdxs.end(), col) == filledColIdxs.end()) {
+          tetromino_w += BLOCK_WIDTH;
+          filledColIdxs.push_back(col);
+        }
+      }
+    }
+  }
+
+  return tetromino_w;
+}
+*/
+
+/*
+int getTetrominoH(Tetromino& tetromino) {
+  int tetromino_h = 0;
+  for (auto row = 0; row < tetromino.shape.size(); row++) {
+    for (auto col = 0; col < tetromino.shape[row].size(); col++) {
+      if (tetromino.shape[row][col] != 0) {
+        tetromino_h += BLOCK_HEIGHT;
+        break;
+      }
+    }
+  }
+
+  return tetromino_h;
+}
+*/
 
 /*
  * TODO:
@@ -462,6 +512,7 @@ void drawPlay() {
   drawTetromino();
   drawLevel();
   drawScore();
+  drawNextTetromino();
 
   // draw landed tetrominos
 	for (auto row = 0; row < tiles.size(); row++) {
@@ -556,6 +607,29 @@ void drawScore() {
 	SDL_RenderCopy(renderer, scoreTextTexture, nullptr, &scoreTextRect);
 }
 
+void drawNextTetromino() {
+  // render next tetromino background
+  SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+  SDL_RenderFillRect(renderer, &nextTetrominoBackgroundRect);
+
+  for (auto row = 0; row < nextTetromino.shape.size(); row++) {
+    for (auto col = 0; col < nextTetromino.shape[row].size(); col++) {
+      if (nextTetromino.shape[row][col] != 0) {
+
+        SDL_Rect rect = {
+          BLOCK_WIDTH  * col + nextTetrominoBackgroundRect.x,
+          BLOCK_HEIGHT * row + nextTetrominoBackgroundRect.y,
+          BLOCK_WIDTH,
+          BLOCK_HEIGHT
+        };
+
+        SDL_RenderCopy(renderer, blockTextures[nextTetromino.shape[row][col]], nullptr, &rect);
+      }
+    }
+  }
+
+}
+
 // range : [min, max) max no inclusive
 int random(int min, int max) {
   static bool first = true;
@@ -567,11 +641,11 @@ int random(int min, int max) {
   return min + rand() % (max - min);
 }
 
-void generateTetromino() {
+Tetromino generateTetromino() {
   const std::string tetrominoName = tetrominoNames[random(0, tetrominoNames.size())];
-  tetromino = createTetromino(tetrominoName);
+  // tetromino = createTetromino(tetrominoName);
   // tetromino = createTetromino("I");
-
+  return createTetromino(tetrominoName);
 }
 
 bool canRotate(int rotationIdx) {
@@ -720,7 +794,9 @@ void updateTetromino() {
       }
 
       tickDuration = tickDurationDefault;
-      generateTetromino();
+      // generateTetromino();
+      tetromino = nextTetromino;
+      nextTetromino = generateTetromino();
 
     }
     // reset accum
